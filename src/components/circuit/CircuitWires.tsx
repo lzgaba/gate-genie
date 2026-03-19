@@ -1,4 +1,5 @@
 import type { CircuitNode, Wire } from "@/types/circuit";
+import { getInputPortCount } from "@/lib/circuitUtils";
 
 const NODE_WIDTH = 140;
 const NODE_HEIGHT = 70;
@@ -48,7 +49,7 @@ const CircuitWires = ({ nodes, wires, nodeValues, onRemoveWire }: CircuitWiresPr
         const toNode = nodeMap[wire.toId];
         if (!fromNode || !toNode) return null;
 
-        const totalInputPorts = toNode.type === "output" ? 1 : 2;
+        const totalInputPorts = getInputPortCount(toNode, wires);
         const from = getOutputPort(fromNode);
         const to = getInputPort(toNode, wire.toPort, totalInputPorts);
         const active = nodeValues[wire.fromId] ?? false;

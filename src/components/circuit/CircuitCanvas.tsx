@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Plus, Cpu, Cable, Trash2, Zap, CircleDot } from "lucide-react";
+import { useMemo } from "react";
+import { Plus, Cpu, Cable, Zap, CircleDot } from "lucide-react";
 import { useCircuit } from "@/hooks/useCircuit";
 import DraggableNode from "./DraggableNode";
 import InputNode from "./InputNode";
@@ -7,6 +7,7 @@ import GateNode from "./GateNode";
 import OutputNode from "./OutputNode";
 import CircuitWires from "./CircuitWires";
 import type { GateType } from "@/types/circuit";
+import { getInputPortCount } from "@/lib/circuitUtils";
 
 const NODE_WIDTH = 140;
 const NODE_HEIGHT = 70;
@@ -141,31 +142,31 @@ const CircuitCanvas = () => {
               )}
 
               {/* Input ports (left side) */}
-              {isTarget && connecting && (
-                <>
-                  {[0, 1].map((portIdx) => {
-                    // For output nodes, only 1 port
-                    if (node.type === "output" && portIdx > 0) return null;
-                    const totalPorts = node.type === "output" ? 1 : 2;
-                    const spacing = NODE_HEIGHT / (totalPorts + 1);
-                    return (
-                      <button
-                        key={portIdx}
-                        className="absolute w-5 h-5 rounded-full border-2 border-accent/60 bg-accent/20 hover:bg-accent/50 hover:scale-150 cursor-pointer z-30 signal-transition animate-pulse"
-                        style={{
-                          left: node.position.x - 10,
-                          top: node.position.y + spacing * (portIdx + 1) - 10,
-                        }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          finishConnection(node.id, portIdx);
-                        }}
-                        title={`Conectar à porta ${portIdx}`}
-                      />
-                    );
-                  })}
-                </>
-              )}
+              {isTarget && connecting && (() => {
+                const portCount = getInputPortCount(node, wires);
+                return (
+                  <>
+                    {Array.from({ length: portCount }, (_, portIdx) => {
+                      const spacing = NODE_HEIGHT / (portCount + 1);
+                      return (
+                        <button
+                          key={portIdx}
+                          className="absolute w-5 h-5 rounded-full border-2 border-accent/60 bg-accent/20 hover:bg-accent/50 hover:scale-150 cursor-pointer z-30 signal-transition animate-pulse"
+                          style={{
+                            left: node.position.x - 10,
+                            top: node.position.y + spacing * (portIdx + 1) - 10,
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            finishConnection(node.id, portIdx);
+                          }}
+                          title={`Conectar à porta ${portIdx}`}
+                        />
+                      );
+                    })}
+                  </>
+                );
+              })()}
             </div>
           );
         })}
