@@ -1,4 +1,5 @@
 import type { GateType } from "@/types/circuit";
+import { X } from "lucide-react";
 
 const GATE_TYPES: GateType[] = ["AND", "OR", "NOT", "XOR", "NAND", "NOR"];
 
@@ -6,6 +7,7 @@ interface GateNodeProps {
   type: GateType;
   result: boolean;
   onChangeType: (type: GateType) => void;
+  onRemove: () => void;
 }
 
 const GateSVG = ({ type, color }: { type: GateType; color: string }) => {
@@ -66,7 +68,7 @@ const GateSVG = ({ type, color }: { type: GateType; color: string }) => {
   return svgs[type] || svgs.AND;
 };
 
-const GateNode = ({ type, result, onChangeType }: GateNodeProps) => {
+const GateNode = ({ type, result, onChangeType, onRemove }: GateNodeProps) => {
   const color = result ? "hsl(142 72% 50%)" : "hsl(215 15% 35%)";
 
   return (
@@ -79,6 +81,12 @@ const GateNode = ({ type, result, onChangeType }: GateNodeProps) => {
         }
       `}
     >
+      <button
+        onClick={(e) => { e.stopPropagation(); onRemove(); }}
+        className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center text-xs hover:scale-110 signal-transition z-10"
+      >
+        <X size={10} />
+      </button>
       <div className="flex items-center gap-2">
         <GateSVG type={type} color={color} />
         <span
