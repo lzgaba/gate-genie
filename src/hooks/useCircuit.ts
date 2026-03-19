@@ -150,7 +150,7 @@ export function useCircuit() {
       ];
     });
     setConnecting(null);
-  }, [connecting]);
+  }, [connecting, nodes, wires]);
 
   const cancelConnection = useCallback(() => {
     setConnecting(null);
