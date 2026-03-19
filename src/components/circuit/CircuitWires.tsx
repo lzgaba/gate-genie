@@ -1,4 +1,5 @@
 import type { CircuitNode, Wire } from "@/types/circuit";
+import { getInputPortCount } from "@/lib/circuitUtils";
 
 const NODE_WIDTH = 140;
 const NODE_HEIGHT = 70;
