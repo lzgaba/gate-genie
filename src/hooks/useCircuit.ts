@@ -125,6 +125,15 @@ export function useCircuit() {
       setConnecting(null);
       return;
     }
+    // Check NOT gate limit: only 1 input allowed
+    const targetNode = nodes.find((n) => n.id === toId);
+    if (targetNode?.type === "gate" && (targetNode.data as any).type === "NOT") {
+      const existingWires = wires.filter((w) => w.toId === toId);
+      if (existingWires.length >= 1) {
+        setConnecting(null);
+        return;
+      }
+    }
     // Don't allow duplicate wires
     setWires((prev) => {
       const exists = prev.some(
