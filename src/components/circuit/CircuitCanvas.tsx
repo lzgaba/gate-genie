@@ -1,6 +1,5 @@
 import { useMemo } from "react";
 import { Plus, Cpu, Cable, Zap, CircleDot } from "lucide-react";
-import { useCircuit } from "@/hooks/useCircuit";
 import DraggableNode from "./DraggableNode";
 import InputNode from "./InputNode";
 import GateNode from "./GateNode";
@@ -8,11 +7,32 @@ import OutputNode from "./OutputNode";
 import CircuitWires from "./CircuitWires";
 import type { GateType } from "@/types/circuit";
 import { getInputPortCount } from "@/lib/circuitUtils";
+import type { CircuitNode, Wire, Position } from "@/types/circuit";
 
 const NODE_WIDTH = 140;
 const NODE_HEIGHT = 70;
 
-const CircuitCanvas = () => {
+interface CircuitCanvasProps {
+  circuit: {
+    nodes: CircuitNode[];
+    wires: Wire[];
+    nodeValues: Record<string, boolean>;
+    connecting: { fromId: string } | null;
+    toggleInput: (id: string) => void;
+    addInput: () => void;
+    addGate: (type?: GateType) => void;
+    addOutput: () => void;
+    removeNode: (id: string) => void;
+    changeGateType: (gateId: string, type: GateType) => void;
+    moveNode: (id: string, position: Position) => void;
+    startConnection: (fromId: string) => void;
+    finishConnection: (toId: string, toPort: number) => void;
+    cancelConnection: () => void;
+    removeWire: (wireId: string) => void;
+  };
+}
+
+const CircuitCanvas = ({ circuit }: CircuitCanvasProps) => {
   const {
     nodes,
     wires,
@@ -29,7 +49,7 @@ const CircuitCanvas = () => {
     finishConnection,
     cancelConnection,
     removeWire,
-  } = useCircuit();
+  } = circuit;
 
   const inputCount = nodes.filter((n) => n.type === "input").length;
 
