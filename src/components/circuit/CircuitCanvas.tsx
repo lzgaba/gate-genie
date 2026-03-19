@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Plus, Cpu, Cable, Trash2, Zap, CircleDot } from "lucide-react";
+import { useMemo } from "react";
+import { Plus, Cpu, Cable, Zap, CircleDot } from "lucide-react";
 import { useCircuit } from "@/hooks/useCircuit";
 import DraggableNode from "./DraggableNode";
 import InputNode from "./InputNode";
@@ -7,6 +7,7 @@ import GateNode from "./GateNode";
 import OutputNode from "./OutputNode";
 import CircuitWires from "./CircuitWires";
 import type { GateType } from "@/types/circuit";
+import { getInputPortCount } from "@/lib/circuitUtils";
 
 const NODE_WIDTH = 140;
 const NODE_HEIGHT = 70;
