@@ -49,7 +49,7 @@ const CircuitWires = ({ nodes, wires, nodeValues, onRemoveWire }: CircuitWiresPr
         const toNode = nodeMap[wire.toId];
         if (!fromNode || !toNode) return null;
 
-        const totalInputPorts = toNode.type === "output" ? 1 : 2;
+        const totalInputPorts = getInputPortCount(toNode, wires);
         const from = getOutputPort(fromNode);
         const to = getInputPort(toNode, wire.toPort, totalInputPorts);
         const active = nodeValues[wire.fromId] ?? false;
