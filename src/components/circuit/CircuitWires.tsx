@@ -26,13 +26,14 @@ interface CircuitWiresProps {
   nodes: CircuitNode[];
   wires: Wire[];
   nodeValues: Record<string, boolean>;
+  onRemoveWire: (wireId: string) => void;
 }
 
-const CircuitWires = ({ nodes, wires, nodeValues }: CircuitWiresProps) => {
+const CircuitWires = ({ nodes, wires, nodeValues, onRemoveWire }: CircuitWiresProps) => {
   const nodeMap = Object.fromEntries(nodes.map((n) => [n.id, n]));
 
   return (
-    <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 0 }}>
+    <svg className="absolute inset-0 w-full h-full" style={{ zIndex: 1, pointerEvents: "none" }}>
       <defs>
         <filter id="glow-wire">
           <feGaussianBlur stdDeviation="3" result="coloredBlur" />
@@ -47,38 +48,47 @@ const CircuitWires = ({ nodes, wires, nodeValues }: CircuitWiresProps) => {
         const toNode = nodeMap[wire.toId];
         if (!fromNode || !toNode) return null;
 
-        const totalInputPorts = wires.filter((w) => w.toId === wire.toId).length;
+        const totalInputPorts = toNode.type === "output" ? 1 : 2;
         const from = getOutputPort(fromNode);
-        const to = getInputPort(toNode, wire.toPort, Math.max(totalInputPorts, 2));
+        const to = getInputPort(toNode, wire.toPort, totalInputPorts);
         const active = nodeValues[wire.fromId] ?? false;
 
         const midX = (from.x + to.x) / 2;
+        const pathD = `M ${from.x} ${from.y} C ${midX} ${from.y}, ${midX} ${to.y}, ${to.x} ${to.y}`;
 
         return (
           <g key={wire.id}>
-            {/* Background wire */}
+            {/* Clickable invisible wider path for removal */}
             <path
-              d={`M ${from.x} ${from.y} C ${midX} ${from.y}, ${midX} ${to.y}, ${to.x} ${to.y}`}
+              d={pathD}
+              fill="none"
+              stroke="transparent"
+              strokeWidth={14}
+              strokeLinecap="round"
+              className="cursor-pointer"
+              style={{ pointerEvents: "stroke" }}
+              onClick={() => onRemoveWire(wire.id)}
+            >
+              <title>Clique para remover conexão</title>
+            </path>
+            {/* Visible wire */}
+            <path
+              d={pathD}
               fill="none"
               stroke={active ? "hsl(142 72% 50%)" : "hsl(215 25% 18%)"}
               strokeWidth={active ? 3 : 2}
               strokeLinecap="round"
               filter={active ? "url(#glow-wire)" : undefined}
               className="transition-all duration-300"
+              style={{ pointerEvents: "none" }}
             />
-            {/* Animated pulse on active wires */}
             {active && (
-              <circle r="4" fill="hsl(142 72% 50%)">
-                <animateMotion
-                  dur="1.5s"
-                  repeatCount="indefinite"
-                  path={`M ${from.x} ${from.y} C ${midX} ${from.y}, ${midX} ${to.y}, ${to.x} ${to.y}`}
-                />
+              <circle r="4" fill="hsl(142 72% 50%)" style={{ pointerEvents: "none" }}>
+                <animateMotion dur="1.5s" repeatCount="indefinite" path={pathD} />
               </circle>
             )}
-            {/* Port dots */}
-            <circle cx={from.x} cy={from.y} r="4" fill={active ? "hsl(142 72% 50%)" : "hsl(215 25% 25%)"} className="transition-all duration-300" />
-            <circle cx={to.x} cy={to.y} r="4" fill={active ? "hsl(142 72% 50%)" : "hsl(215 25% 25%)"} className="transition-all duration-300" />
+            <circle cx={from.x} cy={from.y} r="4" fill={active ? "hsl(142 72% 50%)" : "hsl(215 25% 25%)"} className="transition-all duration-300" style={{ pointerEvents: "none" }} />
+            <circle cx={to.x} cy={to.y} r="4" fill={active ? "hsl(142 72% 50%)" : "hsl(215 25% 25%)"} className="transition-all duration-300" style={{ pointerEvents: "none" }} />
           </g>
         );
       })}

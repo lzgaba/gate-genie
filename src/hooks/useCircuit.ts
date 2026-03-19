@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from "react";
 import type { CircuitNode, Wire, GateType, Position } from "@/types/circuit";
 
-let idCounter = 0;
+let idCounter = 100;
 const uid = () => `node_${++idCounter}`;
 
 const DEFAULT_INPUTS: CircuitNode[] = [
@@ -33,20 +33,14 @@ const DEFAULT_OUTPUT: CircuitNode = {
   data: { id: "out_1", label: "OUT", position: { x: 600, y: 200 }, sourceId: null },
 };
 
-const DEFAULT_WIRES: Wire[] = [
-  { id: "w1", fromId: "in_A", fromPort: "output", toId: "gate_1", toPort: 0 },
-  { id: "w2", fromId: "in_B", fromPort: "output", toId: "gate_1", toPort: 1 },
-  { id: "w3", fromId: "gate_1", fromPort: "output", toId: "out_1", toPort: 0 },
-];
-
 export function useCircuit() {
   const [nodes, setNodes] = useState<CircuitNode[]>([
     ...DEFAULT_INPUTS,
     DEFAULT_GATE,
     DEFAULT_OUTPUT,
   ]);
-  const [wires, setWires] = useState<Wire[]>(DEFAULT_WIRES);
-  const [selectedGateType, setSelectedGateType] = useState<GateType>("AND");
+  const [wires, setWires] = useState<Wire[]>([]);
+  const [connecting, setConnecting] = useState<{ fromId: string } | null>(null);
 
   const toggleInput = useCallback((id: string) => {
     setNodes((prev) =>
@@ -60,7 +54,7 @@ export function useCircuit() {
 
   const addInput = useCallback(() => {
     const inputNodes = nodes.filter((n) => n.type === "input");
-    const label = String.fromCharCode(65 + inputNodes.length); // A, B, C...
+    const label = String.fromCharCode(65 + inputNodes.length);
     const y = 120 + inputNodes.length * 100;
     const id = uid();
     const newNode: CircuitNode = {
@@ -72,13 +66,37 @@ export function useCircuit() {
     setNodes((prev) => [...prev, newNode]);
   }, [nodes]);
 
-  const removeInput = useCallback(
-    (id: string) => {
-      setNodes((prev) => prev.filter((n) => n.id !== id));
-      setWires((prev) => prev.filter((w) => w.fromId !== id && w.toId !== id));
-    },
-    []
-  );
+  const addGate = useCallback((type: GateType = "AND") => {
+    const gateNodes = nodes.filter((n) => n.type === "gate");
+    const y = 150 + gateNodes.length * 120;
+    const id = uid();
+    const newNode: CircuitNode = {
+      id,
+      type: "gate",
+      position: { x: 350, y },
+      data: { id, type, position: { x: 350, y }, inputIds: [] },
+    };
+    setNodes((prev) => [...prev, newNode]);
+  }, [nodes]);
+
+  const addOutput = useCallback(() => {
+    const outputNodes = nodes.filter((n) => n.type === "output");
+    const y = 150 + outputNodes.length * 120;
+    const id = uid();
+    const label = `OUT ${outputNodes.length + 1}`;
+    const newNode: CircuitNode = {
+      id,
+      type: "output",
+      position: { x: 600, y },
+      data: { id, label, position: { x: 600, y }, sourceId: null },
+    };
+    setNodes((prev) => [...prev, newNode]);
+  }, [nodes]);
+
+  const removeNode = useCallback((id: string) => {
+    setNodes((prev) => prev.filter((n) => n.id !== id));
+    setWires((prev) => prev.filter((w) => w.fromId !== id && w.toId !== id));
+  }, []);
 
   const changeGateType = useCallback((gateId: string, type: GateType) => {
     setNodes((prev) =>
@@ -96,17 +114,37 @@ export function useCircuit() {
     );
   }, []);
 
-  const addWire = useCallback((fromId: string, toId: string, toPort: number) => {
-    // Remove existing wire to the same port
+  // Connection flow: click output port to start, click input port to finish
+  const startConnection = useCallback((fromId: string) => {
+    setConnecting({ fromId });
+  }, []);
+
+  const finishConnection = useCallback((toId: string, toPort: number) => {
+    if (!connecting) return;
+    if (connecting.fromId === toId) {
+      setConnecting(null);
+      return;
+    }
+    // Don't allow duplicate wires
     setWires((prev) => {
+      const exists = prev.some(
+        (w) => w.fromId === connecting.fromId && w.toId === toId && w.toPort === toPort
+      );
+      if (exists) return prev;
+      // Remove existing wire to same port
       const filtered = prev.filter(
         (w) => !(w.toId === toId && w.toPort === toPort)
       );
       return [
         ...filtered,
-        { id: uid(), fromId, fromPort: "output" as const, toId, toPort },
+        { id: uid(), fromId: connecting.fromId, fromPort: "output" as const, toId, toPort },
       ];
     });
+    setConnecting(null);
+  }, [connecting]);
+
+  const cancelConnection = useCallback(() => {
+    setConnecting(null);
   }, []);
 
   const removeWire = useCallback((wireId: string) => {
@@ -117,14 +155,12 @@ export function useCircuit() {
   const nodeValues = useMemo(() => {
     const values: Record<string, boolean> = {};
 
-    // Set input values
     nodes.forEach((n) => {
       if (n.type === "input") {
         values[n.id] = (n.data as any).value;
       }
     });
 
-    // Compute gate values (simple single-layer for now)
     nodes.forEach((n) => {
       if (n.type === "gate") {
         const gateData = n.data as any;
@@ -156,7 +192,6 @@ export function useCircuit() {
       }
     });
 
-    // Compute output values
     nodes.forEach((n) => {
       if (n.type === "output") {
         const outputWires = wires.filter((w) => w.toId === n.id);
@@ -175,14 +210,17 @@ export function useCircuit() {
     nodes,
     wires,
     nodeValues,
-    selectedGateType,
-    setSelectedGateType,
+    connecting,
     toggleInput,
     addInput,
-    removeInput,
+    addGate,
+    addOutput,
+    removeNode,
     changeGateType,
     moveNode,
-    addWire,
+    startConnection,
+    finishConnection,
+    cancelConnection,
     removeWire,
   };
 }
